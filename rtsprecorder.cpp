@@ -123,7 +123,7 @@ bool RTSPRecorder::CloseOutputFile() {
 		return true;
 	av_write_trailer(mOutput);
 	avio_close(mOutput->pb);
-	OnCloseSegmentFile(mOutput->url, mOutput->duration);
+	OnCloseSegmentFile(mOutput->url, mStreamMap[0].last_dts);
 	avformat_free_context(mOutput);
 	mOutput = NULL;
 
@@ -163,7 +163,12 @@ bool RTSPRecorder::OpenURL(const char* url, int64_t time_limit) {
 
 
 	for(unsigned i = 0; i < mInput->nb_streams; i++) {
-		OnInitializeStream(mInput->streams[i]);
+		AVStream* in_strm = mInput->streams[i];
+		if (in_strm->codecpar->codec_type != AVMEDIA_TYPE_AUDIO &&
+				in_strm->codecpar->codec_type != AVMEDIA_TYPE_VIDEO &&
+				in_strm->codecpar->codec_type != AVMEDIA_TYPE_SUBTITLE) {
+			OnInitializeStream(in_strm->codecpar);
+		}
 	}
 
 	if (!OpenNewOutputFile()) {
@@ -274,6 +279,9 @@ void RTSPRecorder::MainLoop() {
 			else
 				pkt.dts = dts;
 
+			mStreamMap[pkt.stream_index].last_pts = pkt.pts;
+			mStreamMap[pkt.stream_index].last_dts = pkt.dts;
+
 			pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
 			pkt.pos = -1;
 			pkt.stream_index = mStreamMap[pkt.stream_index].idx;
@@ -290,7 +298,7 @@ void RTSPRecorder::MainLoop() {
 	}
 }
 
-void RTSPRecorder::OnInitializeStream(const AVStream* strm_info) {
+void RTSPRecorder::OnInitializeStream(const AVCodecParameters* strm_info) {
 }
 
 void RTSPRecorder::OnPackage(int stream_idx, const uint8_t* data, int data_size,

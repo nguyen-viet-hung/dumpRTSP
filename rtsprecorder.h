@@ -33,6 +33,8 @@ protected:
 		int idx;
 		int64_t dts;
 		int64_t pts;
+		int64_t last_dts;
+		int64_t last_pts;
 		bool begin_write;
 	}StreamTimeInfo;
 
@@ -56,7 +58,7 @@ public:
 	void SetFileInfo(const char* path, const char* file_prefix);
 	void SetTerminate();
 	virtual void MainLoop();
-	virtual void OnInitializeStream(const AVStream* strm_info);
+	virtual void OnInitializeStream(const AVCodecParameters* strm_info);
 	virtual void OnPackage(int stream_idx, const uint8_t* data, int data_size, int64_t pts, int64_t dts, int64_t duration);
 	virtual void OnNewSegmentFile(const char* file_path);
 	virtual void OnCloseSegmentFile(const char* file_path, int64_t file_long);
